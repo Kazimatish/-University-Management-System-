@@ -1,9 +1,10 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express'), bcrypt = require('bcryptjs'), jwt = require('jsonwebtoken'),
   cookieParser = require('cookie-parser'), helmet = require('helmet'), rateLimit = require('express-rate-limit'),
   crypto = require('crypto'), path = require('path'), db = require('./config/db');
 
 const app = express();
+app.set('trust proxy', 1);
 app.use(helmet(), express.json({ limit: '100kb' }), cookieParser());
 // Never cache API/pages: prevents back-button access after sign out
 app.use((req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -199,3 +200,4 @@ app.patch('/api/admin/applications/:id', A, h(async (req, res) => {
 }));
 
 app.listen(process.env.PORT || 3000, () => console.log('Running on http://localhost:' + (process.env.PORT || 3000)));
+
