@@ -1,4 +1,4 @@
-/* University Portal frontend. All data comes from the backend API; cookie session is httpOnly (no localStorage). */
+﻿/* University Portal frontend. All data comes from the backend API; cookie session is httpOnly (no localStorage). */
 const $ = s => document.querySelector(s), app = $('#app');
 const e = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let me, D, tab, role = 'student', q = '';
@@ -31,7 +31,7 @@ function loginView(msg = '') {
   <form data-form="login"><label>ID / Username</label><input name="id" required autocomplete="username">
   <label>Password</label><div class="pw"><input name="password" type="password" required autocomplete="current-password"><button type="button" class="sec" data-act="showpw">Show</button></div>
   <p style="color:var(--bad)">${e(msg)}</p><button style="width:100%">Login</button></form>
-  <p><a href="#" data-act="forgot">Forgot Password?</a></p><small>Development demo IDs: ADMIN-001, TCH-2026-0001, STU-2026-0001 (password Demo@12345, dev only)</small></div>`;
+  <p><a href="#" data-act="forgot">Forgot Password?</a></p></div>`;
 }
 function forgotView() {
   app.innerHTML = `<div class="login"><h2>Forgot Password</h2><form data-form="forgot">${field('id', 'Student/Teacher ID', 'text', 'required')}${field('email', 'Registered Email', 'email', 'required')}<br><button>Verify</button> <button type="button" class="sec" data-act="home">Back</button></form></div>`;
@@ -146,3 +146,4 @@ const FORM = {
 document.addEventListener('submit', ev => { const f = ev.target.closest('form[data-form]'); if (!f) return; ev.preventDefault(); run(() => FORM[f.dataset.form](Object.fromEntries(new FormData(f)), f), f.dataset.form === 'login' ? '' : 'Saved.'); });
 addEventListener('pageshow', ev => { if (ev.persisted) location.reload(); }); // block bfcache back-button access after sign out
 route();
+
