@@ -5,32 +5,44 @@ Built with Node.js, Express and MySQL. Passwords are hashed with bcrypt, session
 
 > Status: working test project. See the roadmap below for what is not built yet.
 
+## Live demo
+
+**Link:** https://ums-796f3.containers.snapdeploy.app
+(The first load can take 10 to 30 seconds, because the free host sleeps when idle.)
+
+| Role    | ID              | Password     |
+|---------|-----------------|--------------|
+| Student | `STU-2026-0001` | `NO4MADKS#1` |
+| Teacher | `TCH-2026-0001` | `9_yDgbWb#1` |
+
+Select the matching account type on the login page. These are demo accounts with test data only, so please do not enter real personal information. The Admin dashboard is not public.
+
 ## Features
 
 **Login**
 - Login page is the first screen, with Student / Teacher / Admin account types
-- Show/hide password, forgot password (ID + registered email check, then set a new password)
+- Show/hide password, and forgot password (ID + registered email check, then set a new password)
 - Sign out clears the session and blocks back-button access
 
 **Student**
-- Profile, subject-wise attendance with progress bars and date-wise history
-- Fee challans (printable), assignments with submission and grades, results with GPA
+- Profile, subject-wise attendance with progress bars, and date-wise history
+- Fee challans (printable), assignments with submission and grades, and results with GPA
 - Semester applications (leave, withdrawal, freeze, rechecking, etc.) with status
 
 **Teacher**
-- See only students in their own subjects
-- Mark attendance, create/delete assignments, grade submissions with feedback
-- Enter final subject marks
+- Sees only students in their own subjects
+- Marks attendance, creates and deletes assignments, and grades submissions with feedback
+- Enters final subject marks
 
 **Admin**
-- Register students and teachers (auto-generated IDs and one-time temporary passwords)
-- Search, deactivate, reset password, delete (with confirmation dialog)
-- Manage subjects, issue fee challans, mark them paid, approve or reject applications
+- Registers students and teachers (auto-generated IDs and one-time temporary passwords)
+- Searches, deactivates, resets passwords, and deletes (with a confirmation dialog)
+- Manages subjects, issues fee challans, marks them paid, and approves or rejects applications
 - Audit log of admin actions and dashboard statistics
 
 ## Tech stack
 
-Node.js, Express, MySQL (or MariaDB via XAMPP), bcryptjs, jsonwebtoken, helmet, express-rate-limit, plain HTML/CSS/JavaScript frontend.
+Node.js, Express, MySQL (or MariaDB via XAMPP), bcryptjs, jsonwebtoken, helmet, express-rate-limit, and a plain HTML/CSS/JavaScript frontend.
 
 ## Project structure
 
@@ -39,13 +51,16 @@ student-management-system/
 ├── backend/
 │   ├── server.js          API routes, auth, role checks
 │   ├── seed.js            development demo accounts
-│   └── config/db.js       MySQL connection
+│   ├── setup-db.js        creates the tables in the database set in .env
+│   └── config/db.js       MySQL connection (supports SSL for online databases)
 ├── database/
 │   └── schema.sql         database tables
 ├── frontend/
 │   ├── index.html
 │   ├── css/style.css
 │   └── js/app.js
+├── Dockerfile
+├── .dockerignore
 ├── .env.example
 ├── package.json
 └── README.md
@@ -65,6 +80,7 @@ student-management-system/
 ```
    PORT=3000
    DB_HOST=localhost
+   DB_PORT=3306
    DB_USER=root
    DB_PASSWORD=
    DB_NAME=sms
@@ -81,7 +97,7 @@ student-management-system/
    If PowerShell blocks scripts, use `npm.cmd install`, `npm.cmd run seed` and `npm.cmd start`.
 5. **Open** http://localhost:3000 (do not open `index.html` directly as a file).
 
-Run `npm run seed` only once.
+Run `npm run seed` only once. Local seed accounts use the password `Demo@12345`, for local testing only.
 
 ## Run locally (Mac / Linux)
 
@@ -93,15 +109,43 @@ npm run seed
 npm start
 ```
 
-## Demo credentials (development only)
+## Using an online MySQL database (for example TiDB Cloud)
 
-| Role    | ID              | Password     | Email               |
-|---------|-----------------|--------------|---------------------|
-| Admin   | `ADMIN-001`     | `Demo@12345` | admin@example.com   |
-| Teacher | `TCH-2026-0001` | `Demo@12345` | teacher@example.com |
-| Student | `STU-2026-0001` | `Demo@12345` | student@example.com |
+1. Create a free cluster and note the host, port (usually 4000), username and password.
+2. Set these in `.env`:
+```
+   DB_HOST=your-host
+   DB_PORT=4000
+   DB_USER=your-username
+   DB_PASSWORD=your-password
+   DB_NAME=sms
+   DB_SSL=true
+```
+   `DB_SSL=true` is required, because online databases refuse insecure connections.
+3. Create a database named `sms`, then create the tables from your own computer:
+```
+   node backend/setup-db.js
+```
+4. Create the first accounts once (change the demo passwords afterward):
+```
+   npm run seed
+```
 
-Select the matching account type on the login page. These accounts are for local testing only. Never deploy them to a real server.
+## Environment variables
+
+| Variable      | Description |
+|---------------|-------------|
+| `DB_HOST`     | Database host |
+| `DB_PORT`     | Database port (3306 locally, 4000 for TiDB) |
+| `DB_USER`     | Database username |
+| `DB_PASSWORD` | Database password |
+| `DB_NAME`     | Database name (`sms`) |
+| `DB_SSL`      | `true` for online databases |
+| `JWT_SECRET`  | Long random string used to sign login tokens |
+| `NODE_ENV`    | `development` or `production` |
+| `PORT`        | Server port (set by the host in most cloud platforms) |
+
+Never commit your real `.env` file. It is listed in `.gitignore`.
 
 ## API overview
 
@@ -114,28 +158,33 @@ Select the matching account type on the login page. These accounts are for local
 
 ## Security
 
-- Passwords hashed with bcrypt, never stored or shown in plain text
+- Passwords are hashed with bcrypt, and never stored or shown in plain text
 - JWT in an httpOnly, SameSite=Strict cookie (no localStorage), which also reduces CSRF risk
 - Role checks on the server for every protected route, and teachers are limited to their own subjects
-- Parameterized SQL queries, escaped output in the UI, rate-limited login, helmet security headers
-- No-cache headers so the back button cannot reopen a dashboard after sign out
-- Forgot password issues a 15-minute one-time token. In production it must be emailed (OTP/link) instead of returned by the API
+- Parameterized SQL queries, escaped output in the UI, rate-limited login, and helmet security headers
+- No-cache headers, so the back button cannot reopen a dashboard after sign out
+- Forgot password issues a 15-minute one-time token. In production it must be emailed (OTP or link) instead of returned by the API
 
-## Deployment
+## Deployment (free option: SnapDeploy + TiDB Cloud)
 
-1. Use a host such as Render or Railway with a managed MySQL database.
-2. Set the variables from `.env.example` in the host's settings, with `NODE_ENV=production` and a new random `JWT_SECRET`.
-3. Import `database/schema.sql` once. Do **not** run the seed script.
-4. Serve over HTTPS (required for the secure cookie).
-5. Send the password-reset token by email instead of returning it from `/api/forgot`.
+1. Create a free MySQL-compatible database on TiDB Cloud and create the tables (see "Using an online MySQL database").
+2. Push the project to GitHub (never push `.env`).
+3. On [SnapDeploy](https://snapdeploy.dev), create a new app from your GitHub repo:
+   - Branch: `main`, Start Command: `npm start`, Port: leave on auto-detect
+   - When asked about MySQL, choose "I'm using an external / hosted MySQL"
+   - Add these environment variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL=true`, a new `JWT_SECRET`, and `NODE_ENV=production`
+   - Do not set `PORT`, because the host manages it
+4. Deploy, then open the link shown on the container card.
 
-GitHub Pages cannot host this project, because it needs the Node.js server and a database.
+Notes for the free plan: the container sleeps after 15 minutes idle, so the first request after a quiet period is slow. Free limits apply to deploys per day and running hours per month.
+
+Other hosts such as Render or Railway also work with the same variables. Serve over HTTPS, use a new `JWT_SECRET`, and change every demo password before sharing a link.
 
 ## Roadmap (not built yet)
 
 - Quizzes (create, attempt, publish)
 - In-app notifications
-- Editing student and teacher records, class/section assignment
+- Editing student and teacher records, and class/section assignment
 - Pagination and more filters
 - Reports and settings pages
 - Email-based password reset
